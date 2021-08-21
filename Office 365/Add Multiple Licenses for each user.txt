@@ -1,0 +1,14 @@
+## Get a list of users that have licenses
+Get-MSOLUser -All | where {$_.isLicensed -eq $true} | select DisplayName,userprincipalname,islicensed,{$_.Licenses.AccountSkuId}| Export-CSV C:\Users\Master\Desktop\O365UserList.csv –NoTypeInformation
+
+## Get the available licenses to assign
+Get-MsolAccountSku | ft AccountSkuId
+
+## Assign the licenses to the users in the csv
+$AccountSkuId = "thewillisgroup:AAD_PREMIUM"
+$UsageLocation = "US"
+$Users = Import-Csv C:\Users\"username"\Desktop\O365UserListFormatted.csv
+$Users | ForEach-Object {
+Set-MsolUser -UserPrincipalName $_.UserPrincipalName -UsageLocation $UsageLocation
+Set-MsolUserLicense -UserPrincipalName $_.UserPrincipalName -AddLicenses $AccountSkuId
+}

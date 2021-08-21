@@ -1,0 +1,1 @@
+Get-MailboxFolderStatistics -Identity 2017TSBRI-1AdminAssistant@tri-stargroup.com | Where {$_.Name -match “Inbox”} | Select Identity, Name, folderandsubfoldersize, ItemsInFolder | Sort-Object ItemsInFolder -descending | fl
