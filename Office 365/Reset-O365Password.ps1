@@ -1,11 +1,16 @@
 function Reset-O365Password {
     param (
-    
+        [Parameter(ValueFromPipeline=$true)]
+        $pipeValue,
+        [Parameter(Mandatory=$false)]
+        [switch]$PasswordAge,
+        [Parameter()]
+        [Alias("Identity","UPN")]
+        $UPN
     )
-}
 
 #Checking if MsolService Module is installed.
-Write-Host "Checking for required modules.."
+Write-Host -foregroundcolor Yellow "Checking for required Office 365 modules.."
 
 #Backup Execution Policy
 $previousEP = Get-ExecutionPolicy
@@ -48,9 +53,13 @@ Write-Host "Connecting to MsolService"
 Write-Host "Connecting to Azure-AD"
     Connect-AzureAD
 
-#Check for accounts that have "Password never expires"
-Write-Host "Checking for any users that have 'Password Never Expires'.."
-    Get-MsolUser | Where-Object {($_.Islicensed -eq $true) -and ($_.PasswordNeverExpires -eq $true)} | Select-Object Displayname,PasswordNeverExpires
+    #If the function switch statement "-PasswordAge is used"
+    if ($PasswordAge.IsPresent) {
+        #Check for accounts that have "Password never expires"
+        Write-Host "Checking for any users that have 'Password Never Expires'.."
+        Get-MsolUser | Where-Object {($_.Islicensed -eq $true) -and ($_.PasswordNeverExpires -eq $true)} | Select-Object Displayname,PasswordNeverExpires
+    }
+
 #Find users that are licensed and passwords has NOT been changed within the last 7 days.
 Write-Host "Checking for any users that have not changed their password in the last 7 days.."
     $pwdResetUsers = Get-MsolUser | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(7))}
@@ -67,3 +76,4 @@ Get-AzureADUser -SearchString $user | Select-Object *refresh*
     
 Write-Host "Script completed, instruct users to close their browser and navigate to https://www.office.com to update their passwords.
 'Refresh Tokens' are kept for 5 hours by default. If any were provided above, then run command: Get-AzureADUser -SearchString 'USERS EMAIL ADDRESS' | Revoke-AzureADUserAllRefreshToken"
+}
