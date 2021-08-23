@@ -1,1 +1,0 @@
-Write-Host "Welcome to the Onboarding script!"
