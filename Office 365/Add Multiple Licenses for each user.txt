@@ -7,7 +7,7 @@ Get-MsolAccountSku | ft AccountSkuId
 ## Assign the licenses to the users in the csv
 $AccountSkuId = "NEW LICENSE NAME"
 $UsageLocation = "US"
-$Users = Import-Csv C:\Users\"username"\Desktop\O365UserListFormatted.csv
+$Users = Import-Csv $env:userprofile\Desktop\O365UserListFormatted.csv
 $Users | ForEach-Object {
 Set-MsolUser -UserPrincipalName $_.UserPrincipalName -UsageLocation $UsageLocation
 Set-MsolUserLicense -UserPrincipalName $_.UserPrincipalName -AddLicenses $AccountSkuId
