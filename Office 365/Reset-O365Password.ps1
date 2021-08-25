@@ -66,11 +66,13 @@ Write-Host "Checking for any users that have not changed their password in the l
 #Go through each user who's password hasn't been updated in the last 11 days to force password change at next logon.
     $i = 0
     foreach ($user in $pwdResetUsers) {
-        Write-Progress -Activity 'Processing Pwd Reset Flags & Removing Access Tokens..' -Status "Scanned: $i of $($pwdResetUsers.Count)" -PercentComplete (($i / $pwdResetUsers) * 100)
+        Write-Progress -Activity 'Processing Pwd Reset Flags & Removing Access Tokens..' -Status "Scanned: $i of $($pwdResetUsers.Count)"
         #Flag account for password reset at next logon.
         Get-MsolUser -UserPrincipalName $user.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
         #Revoke Access Token
         Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
+        $i++
+        start-sleep -Milliseconds 150
     }
 Write-Host -foregroundcolor Yellow "Users that were effected"
 $pwdResetUsers | Select-Object UserPrincipalName, DisplayName, LastPasswordChangeTimestamp, PasswordNeverExpires
