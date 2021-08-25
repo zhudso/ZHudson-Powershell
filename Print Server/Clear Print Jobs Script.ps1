@@ -13,15 +13,10 @@ function Clear-PrintQueue2 {
             $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
             $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
         }
-        if ((Test-Admin) -eq $false)  {
-            if ($Elevated) {
-                #session is already as an Administrator
-                Write-host "hitting test-admin if statement"
-            } else {
+            if ((Test-Admin) -eq $false)  {
                 invoke-command -scriptblock {start-job -name AdminPS  -scriptblock {Start-Process powershell.exe -Verb RunAs -ArgumentList ('-noprofile -noexit -file "{0}" -elevated' -f ($myinvocation.MyCommand.Definition))}}
                 wait-job -name AdminPS
             }
-        }
     }
     process {
         Write-host "hitting process block"
