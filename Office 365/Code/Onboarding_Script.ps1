@@ -1,4 +1,3 @@
-Write-Host "Welcome to the Onboarding script!"
 
 <# Office 365 License Management 
 https://docs.microsoft.com/en-us/microsoft-365/enterprise/assign-licenses-to-user-accounts-with-microsoft-365-powershell?view=o365-worldwide #>

@@ -3,7 +3,7 @@ $copy = Read-Host "Copy an exisiting user? (Y/N) "
 <# If coping a user. #>
 if ($copy -eq "Yes" -or $copy -eq "Y") {
     $copiedUser = Read-Host "User to copy from: "
-    $copiedOU = (((Get-ADUser -identity $copiedUser -Properties CanonicalName | select-object -expandproperty DistinguishedName) -split",") | select -Skip 1) -join ','
+    $copiedOU = (((Get-ADUser -identity $copiedUser -Properties CanonicalName | select-object -expandproperty DistinguishedName) -split",") | Select-Object -Skip 1) -join ','
     $copiedMemberships = Get-ADPrincipalGroupMembership $copiedUser | Select-Object -ExpandProperty Name
 }
 
