@@ -1,3 +1,5 @@
+#Investigate how to take in pipeline users.
+
 function Reset-O365Password {
     [CmdletBinding()]
     param (
@@ -7,63 +9,100 @@ function Reset-O365Password {
         #Find users who's password is set to never expire
         [Parameter(Mandatory=$false)]
         [switch]$NoExpiration,
-        # Finds user passwords that have been not recently changed within a certain time frame. (XX/XX/XXXX - Today)
+        # Finds user passwords that have been not recently changed within a certain time frame.
         [Parameter(Mandatory=$false)]
         $OlderThan,
-        # Finds user passwords that have been recently changed within a certain time frame. (XX/XX/XXXX - Today) 
+        # Finds user passwords that have been recently changed within a certain time frame.
         [Parameter(Mandatory=$false)]
-        $NewerThan
+        $NewerThan,
+        # Parameter help description
+        [Alias('UPN')]
+        [Parameter()]
+        $UserPrincipalName
     )
 
-#Checking if MsolService Module is installed.
-Write-Host -foregroundcolor Yellow "Checking for required Office 365 modules.."
-
-#Backup Execution Policy
-$previousEP = Get-ExecutionPolicy
-#Set Execution Policy to allow install of modules.
-Set-ExecutionPolicy RemoteSigned
-
+#Are we already connected to MsolService & Azure AD?
+$MsolServiceSession = Get-MsolDomain -ErrorAction SilentlyContinue
+$AzureADServiceSession = Get-AzureADTenantDetail -ErrorAction SilentlyContinue
+#Checking if MsolService & AzureAD Module is installed.
 $MsolModule = Get-InstalledModule -Name MSOnline -ErrorAction SilentlyContinue
-    # If Module is not installed, sliently install Module.
-    if ($null -eq $MsolModule) {
-        try {
-            Write-Host -ForegroundColor Cyan "Installing Msolservice Module.. "
-            #Silenty Install Module.
-            Install-Module MSOnline -Force
-        }
-            catch {
-                $error[0]
-            }
-    }
-#Checking if Azure AD Module is installed.
 $AzureADModule = Get-InstalledModule -Name AzureAD -ErrorAction SilentlyContinue
-    # If Module is not installed, sliently install Module.
-    if ($null -eq $AzureADModule) {
-        try {
-            Write-Host -ForegroundColor Cyan "Installing AzureAD Module.. "
-            #Silenty Install Module.
-            Install-Module AzureAD -Force
-        }
-        catch {
-            $error[0]
-        }
+
+#Checking for MsolService
+try {
+    if ($null -ne $MsolServiceSession) {
+        break
     }
+    elseif ($null -eq $MsolModule) {
+            # Module is not installed, sliently install
+            try {
+                #Backup Execution Policy
+                $previousEP = Get-ExecutionPolicy
+                #Set Execution Policy to allow install of modules.
+                Set-ExecutionPolicy RemoteSigned
+                #Installing Module
+                Write-Host -ForegroundColor Cyan "Installing Msolservice Module.. "
+                #Silenty Install Module.
+                Install-Module -Name MSOnline -Force
+                #Restore Execution Policy
+                Set-ExecutionPolicy $previousEP
+                Write-host -ForegroundColor Cyan "Module now installed and now connecting to MsolService"
+                Connect-MsolService
+            }
+                catch {
+                    $error[0]
+                }
+        }
+    else {
+        # Module is already installed, creating new active session.
+        Write-host -ForegroundColor Cyan "Connecting to MsolService.."
+        Connect-MsolService
+    }
+}   
+    catch {
+        $error[0]
+}
 
-#Return to previous Execution Policy
-Set-ExecutionPolicy $previousEP
-
-#Connect to MsolService
-Write-Host "Connecting to MsolService"
-    Connect-MsolService
-#Connect to Microsoft Azure AD
-Write-Host "Connecting to Azure-AD"
-    Connect-AzureAD
+#Checking for Azure AD
+try {
+    if ($null -ne $AzureADServiceSession) {
+        break
+    }
+    elseif ($null -eq $AzureADModule) {
+            # Module is not installed, sliently install
+            try {
+                #Backup Execution Policy
+                $previousEP = Get-ExecutionPolicy
+                #Set Execution Policy to allow install of modules.
+                Set-ExecutionPolicy RemoteSigned
+                #Installing Module
+                Write-Host -ForegroundColor Cyan "Installing AzureAD Module.. "
+                #Silenty Install Module.
+                Install-Module -Name AzureAD -Force
+                #Restore Execution Policy
+                Set-ExecutionPolicy $previousEP
+                Write-host -ForegroundColor Cyan "Module now installed and now connecting to AzureAD"
+                Connect-AzureAD
+            }
+                catch {
+                    $error[0]
+                }
+        }
+    else {
+        # Module is already installed, creating new active session.
+        Write-host -ForegroundColor Cyan "Connecting to MsolService.."
+        Connect-MsolService
+    }
+}   
+    catch {
+        $error[0]
+}
 
 #If the -NoExpiration switch is provided
 if ($NoExpiration) {
     #Check for accounts that have "Password never expires"
     Write-Host "Checking for any users that are licensed and have 'Password Never Expires'.."
-    Get-MsolUser | Where-Object {($_.Islicensed -eq $true) -and ($_.PasswordNeverExpires -eq $true)} | Select-Object Displayname,PasswordNeverExpires
+    Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.PasswordNeverExpires -eq $true)} | Select-Object Displayname,PasswordNeverExpires
 }
 
 #If the -OlderThan switch is provided
@@ -77,7 +116,7 @@ if ($OlderThan) {
     }
         #Find users that are licensed and passwords has NOT been changed within the last $OlderThan days.
         Write-Host "Checking for any users that have not changed their password in the last $OlderThan days.."
-        $pwdResetUsers = Get-MsolUser -MaxResults | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
+        $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
 }
 
 #If the -NewerThan switch is provided
@@ -91,7 +130,7 @@ if ($NewerThan) {
     }
         #Find users that are licensed and passwords has been changed within the last $NewerThan days.
         Write-Host "Checking for any users that have not changed their password in the last $NewerThan days.."
-        $pwdResetUsers = Get-MsolUser -MaxResults | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -gt (Get-Date).AddDays($NewerThan))}
+        $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -gt (Get-Date).AddDays($NewerThan))}
 }
 
 #Go through each user who's password needs to be updated & force password change at next logon.
