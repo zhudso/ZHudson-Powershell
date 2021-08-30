@@ -1,13 +1,17 @@
 function Reset-O365Password {
+    [CmdletBinding()]
     param (
+        #Take user(s) through the Pipeline
         [Parameter(ValueFromPipeline=$true)]
         $pipeValue,
+        #Find users who's password is set to never expire
         [Parameter(Mandatory=$false)]
         [switch]$NoExpiration,
-        [Parameter]
+        # Finds user passwords that have been not recently changed within a certain time frame. (XX/XX/XXXX - Today)
+        [Parameter(Mandatory=$false)]
         $OlderThan,
-        # Finds user passwords that have been changing WITHIN a certain time frame. (specified date - Now) 
-        [Parameter]
+        # Finds user passwords that have been recently changed within a certain time frame. (XX/XX/XXXX - Today) 
+        [Parameter(Mandatory=$false)]
         $NewerThan
     )
 
@@ -56,33 +60,50 @@ Write-Host "Connecting to Azure-AD"
     Connect-AzureAD
 
 #If the -NoExpiration switch is provided
-if ($NoExpiration.IsPresent) {
+if ($NoExpiration) {
     #Check for accounts that have "Password never expires"
     Write-Host "Checking for any users that are licensed and have 'Password Never Expires'.."
     Get-MsolUser | Where-Object {($_.Islicensed -eq $true) -and ($_.PasswordNeverExpires -eq $true)} | Select-Object Displayname,PasswordNeverExpires
 }
 
-if ($OlderThan.IsPresent) {
-    #If a Date was provided, then covert that into a number of Days.
-    $OlderThanDate = $OlderThan
-    $Today         = Get-Date
-    $TotalDays     = New-TimeSpan -Start $OlderThanDate -End $Today
-    $OlderThan     = $TotalDays.Days
-    #Find users that are licensed and passwords has NOT been changed within the last $OlderThan days.
-    Write-Host "Checking for any users that have not changed their password in the last $OlderThan days.."
-    $pwdResetUsers = Get-MsolUser -MaxResults | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
+#If the -OlderThan switch is provided
+if ($OlderThan) {
+    #If a Date was a string (Example: 8/12/2021), then covert that into a number of Days.
+    If ($OlderThan -is [string]) {
+        $OlderThanDate = $OlderThan
+        $Today         = Get-Date
+        $TotalDays     = New-TimeSpan -Start $OlderThanDate -End $Today
+        $OlderThan     = $TotalDays.Days
+    }
+        #Find users that are licensed and passwords has NOT been changed within the last $OlderThan days.
+        Write-Host "Checking for any users that have not changed their password in the last $OlderThan days.."
+        $pwdResetUsers = Get-MsolUser -MaxResults | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
 }
 
-#Go through each user who's password hasn't been updated in the last 11 days to force password change at next logon.
+#If the -NewerThan switch is provided
+if ($NewerThan) {
+    #If a Date was a string (Example: 8/12/2021), then covert that into a number of Days.
+    If ($NewerThan -is [string]) {
+        $NewerThanDate = $NewerThan
+        $Today         = Get-Date
+        $TotalDays     = New-TimeSpan -Start $NewerThanDate -End $Today
+        $NewerThan     = $TotalDays.Days
+    }
+        #Find users that are licensed and passwords has been changed within the last $NewerThan days.
+        Write-Host "Checking for any users that have not changed their password in the last $NewerThan days.."
+        $pwdResetUsers = Get-MsolUser -MaxResults | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -gt (Get-Date).AddDays($NewerThan))}
+}
+
+#Go through each user who's password needs to be updated & force password change at next logon.
     $i = 0
     foreach ($user in $pwdResetUsers) {
         Write-Progress -Activity 'Processing Pwd Reset Flags & Removing Access Tokens..' -Status "Scanned: $i of $($pwdResetUsers.Count)"
         #Flag account for password reset at next logon.
-        #Get-MsolUser -UserPrincipalName $user.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
+        Get-MsolUser -UserPrincipalName $user.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
         #Revoke Access Token
-        #Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
-        $i++
+        Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
         start-sleep -Milliseconds 150
+        $i++
     }
 Write-Host -foregroundcolor Yellow "Users that were effected"
 $pwdResetUsers | Select-Object UserPrincipalName, DisplayName, LastPasswordChangeTimestamp, PasswordNeverExpires
