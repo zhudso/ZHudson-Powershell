@@ -1,29 +1,25 @@
-#Investigate how to take in pipeline users.
-
 function Reset-O365Password {
     [CmdletBinding()]
     param (
-        #Take user(s) through the Pipeline
-        [Parameter(ValueFromPipeline=$true)]
-        $pipeValue,
+        # Select a single user with their UPN
+        [Alias('UPN')]
+        [Parameter(Position=0)]
+        $UserPrincipalName,
         #Find users who's password is set to never expire
-        [Parameter(Mandatory=$false)]
+        [Parameter()]
         [switch]$NoExpiration,
         # Finds user passwords that have been not recently changed within a certain time frame.
-        [Parameter(Mandatory=$false)]
-        $OlderThan,
-        # Finds user passwords that have been recently changed within a certain time frame.
-        [Parameter(Mandatory=$false)]
-        $NewerThan,
-        # Parameter help description
-        [Alias('UPN')]
         [Parameter()]
-        $UserPrincipalName
+        $OlderThan
     )
 
 #Are we already connected to MsolService & Azure AD?
 $MsolServiceSession = Get-MsolDomain -ErrorAction SilentlyContinue
+#Have to do ErrorActionPreference swaps for Azure command due to Microsoft reasons: https://github.com/Azure/azure-docs-powershell-azuread/issues/155
+$ErrorActionBackup = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
 $AzureADServiceSession = Get-AzureADTenantDetail -ErrorAction SilentlyContinue
+$ErrorActionPreference = $ErrorActionBackup
 #Checking if MsolService & AzureAD Module is installed.
 $MsolModule = Get-InstalledModule -Name MSOnline -ErrorAction SilentlyContinue
 $AzureADModule = Get-InstalledModule -Name AzureAD -ErrorAction SilentlyContinue
@@ -56,7 +52,7 @@ try {
     else {
         # Module is already installed, creating new active session.
         Write-host -ForegroundColor Cyan "Connecting to MsolService.."
-        Connect-MsolService
+        #Connect-MsolService
     }
 }   
     catch {
@@ -90,8 +86,8 @@ try {
         }
     else {
         # Module is already installed, creating new active session.
-        Write-host -ForegroundColor Cyan "Connecting to MsolService.."
-        Connect-MsolService
+        Write-host -ForegroundColor Cyan "Connecting to AzureAD.."
+        #Connect-AzureAD
     }
 }   
     catch {
@@ -99,55 +95,54 @@ try {
 }
 
 #If the -NoExpiration switch is provided
-#NOTE: Add an export to csv funtion here
 if ($NoExpiration) {
     #Check for accounts that have "Password never expires"
     Write-Host "Checking for any users that are licensed and have 'Password Never Expires'.."
-    Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.PasswordNeverExpires -eq $true)} | Select-Object Displayname,PasswordNeverExpires
+    #$neverExpireUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.PasswordNeverExpires -eq $true)} | Select-Object Displayname,$UserPrincipalName,PasswordNeverExpires
+    Write-Host $neverExpireUsers.Count "users were found."; $neverExpireUsers
 }
 
 #If the -OlderThan switch is provided
-if ($OlderThan -or $NewerThan) {
+if ($OlderThan) {
     #If a Date was a string (Example: 8/12/2021), then covert that into a number of Days.
-    If ($OlderThan -is [string]) {
+    if ($OlderThan -is [string]) {
         $OlderThanDate = $OlderThan
         $Today         = Get-Date
         $TotalDays     = New-TimeSpan -Start $OlderThanDate -End $Today
         $OlderThan     = $TotalDays.Days
     }
-    If ($NewerThan -is [string]) {
-        $NewerThanDate = $NewerThan
-        $Today         = Get-Date
-        $TotalDays     = New-TimeSpan -Start $NewerThanDate -End $Today
-        $NewerThan     = $TotalDays.Days
-    }
-    if ($OlderThan -and $null -eq $UserPrincipalName) {
-        Write-Host -ForegroundColor Yellow "Checking for any users that have not changed their password in the last $OlderThan days.."
-        $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
-    }
-    elseif ($NewerThan -and $null -eq $UserPrincipalName) {
-        Write-Host -ForegroundColor Yellow "Checking for any users that have changed their password in the last $NewerThan days.."
-        $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -gt (Get-Date).AddDays($NewerThan))}
+    try {
+        if ($OlderThan -and $null -eq $UserPrincipalName) {
+            Write-Host -ForegroundColor Yellow "Checking for any users that have not changed their password in the last $OlderThan days.."
+            $pwdResetUsers = 1..20
+            #$pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
+                #Go through all users who's password needs to be updated & force password change at next logon.
+                $i = 0
+                foreach ($user in $pwdResetUsers) {
+                    Write-Progress -Activity 'Processing Pwd Reset Flags & Removing Access Tokens..' -Status "Scanned: $i of $($pwdResetUsers.Count)"
+                    #Flag account for password reset at next logon.
+                    #Get-MsolUser -UserPrincipalName $user.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
+                    #Revoke Access Token
+                    #Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
+                    start-sleep -Milliseconds 150
+                    $i++
+                }
+            }
+    } 
+    catch {
+        $error[0]
     }
 }
-
-#Go through each user who's password needs to be updated & force password change at next logon.
-    $i = 0
-    foreach ($user in $pwdResetUsers) {
-        Write-Progress -Activity 'Processing Pwd Reset Flags & Removing Access Tokens..' -Status "Scanned: $i of $($pwdResetUsers.Count)"
+    if ($UserPrincipalName) {
+        try {
         #Flag account for password reset at next logon.
-        Get-MsolUser -UserPrincipalName $user.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
+        Write-Host -ForegroundColor Yellow Write-host "Flagging user account $UserPrincipalName for password reset and deleting Azure AD token.."
+        #Get-MsolUser -UserPrincipalName $UserPrincipalName.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
         #Revoke Access Token
-        Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
-        start-sleep -Milliseconds 150
-        $i++
+        #Get-AzureADUser -SearchString $UserPrincipalName.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
+    } catch {
+        $error[0]
     }
-Write-Host -foregroundcolor Yellow "Users that were effected"
-$pwdResetUsers | Select-Object UserPrincipalName, DisplayName, LastPasswordChangeTimestamp, PasswordNeverExpires
-
-<# Write-Host -ForegroundColor Yellow "Checking for any Refresh Tokens that weren't deleted.."
-Get-AzureADUser -SearchString $user | Select-Object *refresh* #>
-    
-Write-Host -ForegroundColor Cyan "Script completed, instruct users to close their browser and navigate to https://www.office.com to update their passwords."
-Write-host "Refresh Tokens are kept for 5 hours by default. If any were output above, then run command: Get-AzureADUser -SearchString 'USERS EMAIL ADDRESS' | Revoke-AzureADUserAllRefreshToken (Do this for each user listed)"
+}
+Write-Host -ForegroundColor Cyan "Script completed, instruct users to close their browser and navigate to https://www.office.com or simply sign out and back in to update their passwords."
 }
