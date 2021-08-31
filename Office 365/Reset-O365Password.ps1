@@ -99,6 +99,7 @@ try {
 }
 
 #If the -NoExpiration switch is provided
+#NOTE: Add an export to csv funtion here
 if ($NoExpiration) {
     #Check for accounts that have "Password never expires"
     Write-Host "Checking for any users that are licensed and have 'Password Never Expires'.."
@@ -106,7 +107,7 @@ if ($NoExpiration) {
 }
 
 #If the -OlderThan switch is provided
-if ($OlderThan) {
+if ($OlderThan -or $NewerThan) {
     #If a Date was a string (Example: 8/12/2021), then covert that into a number of Days.
     If ($OlderThan -is [string]) {
         $OlderThanDate = $OlderThan
@@ -114,23 +115,20 @@ if ($OlderThan) {
         $TotalDays     = New-TimeSpan -Start $OlderThanDate -End $Today
         $OlderThan     = $TotalDays.Days
     }
-        #Find users that are licensed and passwords has NOT been changed within the last $OlderThan days.
-        Write-Host "Checking for any users that have not changed their password in the last $OlderThan days.."
-        $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
-}
-
-#If the -NewerThan switch is provided
-if ($NewerThan) {
-    #If a Date was a string (Example: 8/12/2021), then covert that into a number of Days.
     If ($NewerThan -is [string]) {
         $NewerThanDate = $NewerThan
         $Today         = Get-Date
         $TotalDays     = New-TimeSpan -Start $NewerThanDate -End $Today
         $NewerThan     = $TotalDays.Days
     }
-        #Find users that are licensed and passwords has been changed within the last $NewerThan days.
-        Write-Host "Checking for any users that have not changed their password in the last $NewerThan days.."
+    if ($OlderThan -and $null -eq $UserPrincipalName) {
+        Write-Host -ForegroundColor Yellow "Checking for any users that have not changed their password in the last $OlderThan days.."
+        $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
+    }
+    elseif ($NewerThan -and $null -eq $UserPrincipalName) {
+        Write-Host -ForegroundColor Yellow "Checking for any users that have changed their password in the last $NewerThan days.."
         $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -gt (Get-Date).AddDays($NewerThan))}
+    }
 }
 
 #Go through each user who's password needs to be updated & force password change at next logon.
