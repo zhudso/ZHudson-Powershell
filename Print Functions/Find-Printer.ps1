@@ -65,10 +65,10 @@ function Find-Printer{
         [Parameter(Position=1)]
         $Name
     )
-    if ($null -ne $Port) {
+    if ($Port) {
         Get-Printer | Where-Object {$_.Portname -eq $Port} | Select-Object Name,DriverName,Portname,Shared,ShareName,JobCount | Format-List
     }
-    elseif ($null -ne $Name) {
+    if ($Name) {
         Get-Printer | Where-Object {($_.Name -match $Name) -or ($_.DriverName -match $Name)} | Select-Object Name,DriverName,@{N='Port'; E={$_.Portname}},Shared,ShareName,JobCount | Format-List
     }
 }
