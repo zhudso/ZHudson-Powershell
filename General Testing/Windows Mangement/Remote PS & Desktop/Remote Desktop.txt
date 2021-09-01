@@ -1,0 +1,7 @@
+Unable to ping computer but everything else in the VPN.
+
+	New-NetFirewallRule -DisplayName 'RDP_3389' -Profile 'Domain' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389
+
+Adding a user account to the RDP users group.
+
+	net localgroup "remote desktop users" username /add

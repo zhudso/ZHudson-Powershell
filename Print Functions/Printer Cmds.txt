@@ -1,0 +1,2 @@
+# Find list of Printers on a DC
+Get-Printer | Format-List Name,DriverName,PortName

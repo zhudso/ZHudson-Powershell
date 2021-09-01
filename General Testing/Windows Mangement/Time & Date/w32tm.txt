@@ -1,0 +1,29 @@
+Researched how to determine the time server that the server is pointing to
+Ran this command net time /querysntp
+current SNTP is 1.us.pool.ntp.org & 3.us.pool.ntp.org,0x1
+ran this command w32tm /query /status
+last successful sync time: 11/10/2019 10:45:23
+Source: Local CMOS Clock.
+Ran these commands.
+net stop w32time
+	Successfully.
+w32tm /config /syncfromflags:manual /manualpeerlist:"0.north-america.pool.ntp.org, 1.north-america.pool.ntp.org,  2.north-america.pool.ntp.org, 3.north-america.pool.ntp.org, ntp.maxen.net"
+	Successfully.
+w32tm /config /reliable:yes
+	Successfully.
+net start w32time
+	Successfully.
+w32tm /resync /rediscover
+	Error: unable to make change due to time sync is too big.
+Changed the time from 1:00pm to 12:00pm and reran command
+	Successfully
+Re-ran w32tm /query /status
+Now see that it's pooling from ntp.maxen.net
+
+
+
+More Utilities
+
+net time
+net time /DOMAIN
+net time \\localhost
