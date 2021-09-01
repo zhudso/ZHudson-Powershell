@@ -48,5 +48,3 @@ Function Get-AzureMFAStatus {
     }
     END {}
 }
-#Run function
-Get-AzureMFAStatus
