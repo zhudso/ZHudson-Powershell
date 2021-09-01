@@ -5,12 +5,12 @@ function Reset-O365Password {
         [Alias('UPN')]
         [Parameter(Position=0)]
         $UserPrincipalName,
-        #Find users who's password is set to never expire
-        [Parameter()]
-        [switch]$NoExpiration,
         # Finds user passwords that have been not recently changed within a certain time frame.
         [Parameter()]
-        $OlderThan
+        $OlderThan,        
+        #Find users who's password is set to never expire
+        [Parameter()]
+        [switch]$NoExpiration
     )
 
 #Are we already connected to MsolService & Azure AD?
@@ -52,7 +52,7 @@ try {
     else {
         # Module is already installed, creating new active session.
         Write-host -ForegroundColor Cyan "Connecting to MsolService.."
-        #Connect-MsolService
+        Connect-MsolService
     }
 }   
     catch {
@@ -87,7 +87,7 @@ try {
     else {
         # Module is already installed, creating new active session.
         Write-host -ForegroundColor Cyan "Connecting to AzureAD.."
-        #Connect-AzureAD
+        Connect-AzureAD
     }
 }   
     catch {
@@ -114,16 +114,15 @@ if ($OlderThan) {
     try {
         if ($OlderThan -and $null -eq $UserPrincipalName) {
             Write-Host -ForegroundColor Yellow "Checking for any users that have not changed their password in the last $OlderThan days.."
-            $pwdResetUsers = 1..20
-            #$pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
+            $pwdResetUsers = Get-MsolUser -All | Where-Object {($_.Islicensed -eq $true) -and ($_.LastPasswordChangeTimestamp -lt (Get-Date).AddDays(-$OlderThan))}
                 #Go through all users who's password needs to be updated & force password change at next logon.
                 $i = 0
                 foreach ($user in $pwdResetUsers) {
                     Write-Progress -Activity 'Processing Pwd Reset Flags & Removing Access Tokens..' -Status "Scanned: $i of $($pwdResetUsers.Count)"
                     #Flag account for password reset at next logon.
-                    #Get-MsolUser -UserPrincipalName $user.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
+                    Get-MsolUser -UserPrincipalName $user.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
                     #Revoke Access Token
-                    #Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
+                    Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
                     start-sleep -Milliseconds 150
                     $i++
                 }
@@ -136,10 +135,11 @@ if ($OlderThan) {
     if ($UserPrincipalName) {
         try {
         #Flag account for password reset at next logon.
-        Write-Host -ForegroundColor Yellow Write-host "Flagging user account $UserPrincipalName for password reset and deleting Azure AD token.."
-        #Get-MsolUser -UserPrincipalName $UserPrincipalName.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
+        Write-Host -ForegroundColor Yellow Write-host "Setting $UserPrincipalName for a password reset and deleting Azure AD token.."
+        #Difference between -ForceChangePasswordOnly (automatically sets a random password & tells the acount to reset at next logon) & -ForceChangePassword: Removes the previous's command action of setting a random password)
+        Get-MsolUser -UserPrincipalName $UserPrincipalName.UserPrincipalName | Set-MsolUserPassword -ForceChangePasswordOnly $true -ForceChangePassword $true
         #Revoke Access Token
-        #Get-AzureADUser -SearchString $UserPrincipalName.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
+        Get-AzureADUser -SearchString $UserPrincipalName.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
     } catch {
         $error[0]
     }
