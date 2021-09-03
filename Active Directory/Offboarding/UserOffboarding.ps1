@@ -56,9 +56,9 @@ function Backup-User {
     Write-Notes -Message "Saved copy of Active Directory Groups $env:userprofile\desktop\$User ADGroups.txt"
 }
 function Set-Password {
-    <# Generates a new 8-character password with at least 2 non-alphanumeric character. #>
+    <# Generates a new 12 digit password. 10-character password with 2 non-alphanumeric characters. #>
     Add-Type -AssemblyName System.Web
-    $NewPassword = [System.Web.Security.Membership]::GeneratePassword(8,2)
+    $NewPassword = [System.Web.Security.Membership]::GeneratePassword(10,2)
     Write-Notes -Message "Changed user password to: $NewPassword"
     Set-ADAccountPassword -Identity $user -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPassword -Force)
 }
@@ -71,7 +71,7 @@ function Move-User {
         Write-Notes -Message "Moved $User to $disabledOU"
     }
     catch {
-        Write-Warning "Unable to move user account. There are multiple or no OU's found on the search condition of 'Mailbox Retention'. Please manually move the user to a Disabled OU"
+        Write-Warning "Unable to move user account. There are multiple or no OU's found on the search condition of 'Mailbox Retention'. Please manually move the user to a Disabled Users OU"
     }
 }
 
@@ -98,17 +98,17 @@ function Hide-GAL {
     $global:ErrorActionPreference = $OldErrorActionPreference
     if ($GALStatus -eq "TRUE") {
         Write-Notes -Message "Hid $User from global address lists in AD"
-        continue <# If error or returns false, continue through the script as if successful but doesn't document in notes. #>
+        break
     }
     else {
         <# Do nothing, could be that msExchHideFromAddressLists isn't found due to it not being installed/configured. #>
     }
 }
 
-function Offboard-User {
+function Disable-User {
     param (
         [parameter(Mandatory, Position=0)]
-        [ValidateScript({get-aduser -id $_})]
+        [ValidateScript({Get-ADUser -id $_})]
         [string]$User
         )
         try {
@@ -124,7 +124,7 @@ function Offboard-User {
         <# DIRSYNC COMMAND: SOON TO COME.. #>
         }
         catch {
-        Write-Output "Hit the Offboard-User try catch block"
+        Write-Output "Hit the Disable-User try catch block"
         Write-Warning $Error[0]
         }
 }

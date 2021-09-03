@@ -138,7 +138,6 @@ $submitButton.Height          = 32
 $submitButton.Location        = New-Object System.Drawing.Point(23,500)
 $submitButton.Anchor          = [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left
 
-
 <# confirmation dialog box #>
 $buttonType                   = [System.Windows.MessageBoxButton]::YesNo
 $messageIcon                  = [System.Windows.MessageBoxImage]::Information
@@ -159,11 +158,15 @@ $basicForm.controls.AddRange(@($givenName, $givenNameTxtBox, $surName, $surNameT
 
 function copyUser {
         $copiedUser = $copyUserTxtBox.Text
-        $global:copiedOU = (((Get-ADUser -identity $copiedUser -Properties CanonicalName | select-object -expandproperty DistinguishedName) -split",") | Select-Object -Skip 1) -join ','
-        $global:copiedMemberships = Get-ADPrincipalGroupMembership $copiedUser | Select-Object -ExpandProperty Name
+        $script:copiedOU = (((Get-ADUser -identity $copiedUser -Properties CanonicalName | select-object -expandproperty DistinguishedName) -split",") | Select-Object -Skip 1) -join ','
+        $script:copiedMemberships = Get-ADPrincipalGroupMembership $copiedUser | Select-Object -ExpandProperty Name
 }
 
 function newUser {
+    param (
+        [ValidateScript({Get-ADUser -id $_})]
+        [string]$Username
+    )
     $splat = @{
         name              = $givenNameTxtBox.Text + " " + $surNameTxtBox.Text
         accountpassword   = $securePW
@@ -175,12 +178,12 @@ function newUser {
         Title             = $jobTitleTxtBox.Text 
         displayname       = $givenNameTxtBox.Text + " " + $surNameTxtBox.Text
         emailaddress      = $emailTxtBox.Text
-        path              = $global:copiedOU
+        path              = $script:copiedOU
         Enabled           = $true
         verbose           = $true
     }
         New-ADUser @splat -ErrorAction Stop
-        foreach ($membership in $global:copiedMemberships) {
+        foreach ($membership in $script:copiedMemberships) {
         try {
             Add-ADGroupMember -Identity $membership -Members $usernameTxtBox.Text
         }
@@ -210,10 +213,14 @@ $submitButton.Add_Click({
     elseif ($confirmationWindow -eq "Yes") {
         try {
             $securePW = $passwordTxtBox.Text | ConvertTo-SecureString -AsPlainText -Force
-            newUser
+            newUser -ErrorAction Stop
+            [System.Windows.MessageBox]::Show($successConfBody, $successConfTitle)
+            $basicForm.Close()
+          
         }
         catch {
             Write-Output "Failed to create new user"
+            [System.Windows.MessageBox]::Show($failedConfBody, $failedConfTitle)
             Write-Warning $Error[0]
         }
     }
