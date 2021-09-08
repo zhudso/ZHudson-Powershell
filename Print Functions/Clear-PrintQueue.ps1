@@ -8,7 +8,7 @@ function Clear-PrintQueue {
             $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
         }
             if ((Test-Admin) -eq $false)  {
-                Write-Host -ForegroundColor Yellow "ABORTING: Powershell is not running as Administrator. Please close this window and run powershell as Administrator."
+                Write-Host -ForegroundColor Yellow "ABORT: Powershell is not running as Administrator. Please close this window and run powershell as Administrator."
             }
     }
     process {
@@ -28,10 +28,10 @@ function Clear-PrintQueue {
                     }
             }
             catch {
-                Write-Warning "Failed to clear print queue. Please ensure that Printer Spooler service is running & files under directory: C:\Windows\System32\spool\PRINTERS\ is empty."
+                Write-Warning "`nFailed to clear print queue. Please ensure that Printer Spooler service is running & files under directory: C:\Windows\System32\spool\PRINTERS\ is empty."
                 $SpoolerStatus = Get-Service -Name Spooler; $SpoolerStatus
                 $SpoolFiles = Get-ChildItem C:\Windows\System32\spool\PRINTERS; Write-Host  "`nNumber of files under 'C:\Windows\System32\spool\PRINTERS\': " $SpoolFiles.Count
             }
+        }
     }
-}
 }
