@@ -14,15 +14,10 @@ function Reset-O365Password {
     )
 
 #Are we already connected to MsolService & Azure AD?
-$MsolServiceSession = Get-MsolDomain -ErrorAction SilentlyContinue
-#Have to do ErrorActionPreference swaps for Azure command due to Microsoft reasons: https://github.com/Azure/azure-docs-powershell-azuread/issues/155
-$ErrorActionBackup = $ErrorActionPreference
-$ErrorActionPreference = "SilentlyContinue"
-$AzureADServiceSession = Get-AzureADTenantDetail -ErrorAction SilentlyContinue
-$ErrorActionPreference = $ErrorActionBackup
+    $MsolServiceSession = Get-MsolDomain -ErrorAction SilentlyContinue
 #Checking if MsolService & AzureAD Module is installed.
-$MsolModule = Get-InstalledModule -Name MSOnline -ErrorAction SilentlyContinue
-$AzureADModule = Get-InstalledModule -Name AzureAD -ErrorAction SilentlyContinue
+    $MsolModule = Get-InstalledModule -Name MSOnline -ErrorAction SilentlyContinue
+    $AzureADModule = Get-InstalledModule -Name AzureAD -ErrorAction SilentlyContinue
 
 #Checking for MsolService
 try {
@@ -58,6 +53,12 @@ try {
     catch {
         $error[0]
 }
+
+#Have to do ErrorActionPreference swaps for Azure If Statement command due to Microsoft reasons: https://github.com/Azure/azure-docs-powershell-azuread/issues/155
+$ErrorActionBackup = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+$AzureADServiceSession = Get-AzureADTenantDetail -ErrorAction SilentlyContinue
+$ErrorActionPreference = $ErrorActionBackup
 
 #Checking for Azure AD
 try {

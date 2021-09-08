@@ -430,16 +430,6 @@ Number"
         } while($true)
 
     }
-    7 {  <# On-boarding #>
-        <# $scriptToOpen = $psScriptRoot+"\Onboarding_Script.ps1"
-        Invoke-Expression -Command $scriptToOpen #>
-    exit
-    }
-    8 { <# Off-boarding #>
-        <# $scriptToOpen = $psScriptRoot+"\Offboarding_Script.ps1"
-        Invoke-Expression -Command $scriptToOpen #>
-    exit
-    }
     Default {      
     }
 }
