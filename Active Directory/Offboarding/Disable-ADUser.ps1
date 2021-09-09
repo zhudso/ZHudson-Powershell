@@ -28,7 +28,7 @@ function Write-Notes{
         [Parameter()]
         $FilePath = "$env:USERPROFILE\Desktop",
         [Parameter()]
-        $FileName = "$User Offboarding Notes"
+        $FileName = "$User.DisplayName Offboarding Notes"
     )
     begin {
         <# Process each value and get them ready as 1 unit for the process block.
@@ -49,20 +49,20 @@ function Backup-User {
     <# Show Original Object Location #>
     $ObjectLocation = Get-ADUser -identity $User -Properties CanonicalName | select-object -ExpandProperty CanonicalName
     Write-Notes -Message "Original Object location: $ObjectLocation"
-    $UserEmailAddress = Get-ADUser -id $User -Properties * | Select-Object -ExpandProperty EmailAddress
+    $UserEmailAddress = Get-ADUser -id $User -Properties * | Select-Object -ExpandProperty UserPrincipalName
     Write-Notes -Message "Users Email Address: $UserEmailAddress"
     <# Backup the current groups to the desktop in a .txt file #>
     Get-ADPrincipalGroupMembership -Identity $User | Select-Object -ExpandProperty Name | Write-Notes -FileName "$User ADGroups.txt"
     Write-Notes -Message "Saved copy of Active Directory Groups $env:userprofile\desktop\$User ADGroups.txt"
 }
 function Set-Password {
-    <# Generates a new 12 digit password. 10-character password with 2 non-alphanumeric characters. #>
+    <# Generates a new 14 character password. 14-character password with the complexity of 5 then add a random number at the end. #>
     Add-Type -AssemblyName System.Web
-    $NewPassword = [System.Web.Security.Membership]::GeneratePassword(10,2)
+    $NewPassword = [System.Web.Security.Membership]::GeneratePassword(14,5)
+    $NewPassword += Get-Random -Maximum 10
     Write-Notes -Message "Changed user password to: $NewPassword"
-    Set-ADAccountPassword -Identity $user -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPassword -Force)
+    Set-ADAccountPassword -Identity $User -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $NewPassword -Force)
 }
-
 function Move-User {
     $currentOU = Get-ADUser -identity $user -Properties CanonicalName | select-object -expandproperty DistinguishedName
     $disabledOU = Get-ADOrganizationalUnit -Filter 'Name -like "* - Mailbox Retention"'
@@ -90,25 +90,29 @@ function Remove-DistributionGroups {
     }
 
 function Hide-GAL {
-    <# For whatever reason, -erroraction doesn't do anything on hiding from GAL #>
-    $OldErrorActionPreference = $global:ErrorActionPreference
-    $global:ErrorActionPreference = "SilentlyContinue"
-    Set-ADUser -Identity $User -Replace @{msExchHideFromAddressLists="TRUE"} -ErrorAction SilentlyContinue
-    $GALStatus = Get-ADUser -id $User -properties * | Select-Object -ExpandProperty msExchHideFromAddressLists
-    $global:ErrorActionPreference = $OldErrorActionPreference
-    if ($GALStatus -eq "TRUE") {
-        Write-Notes -Message "Hid $User from global address lists in AD"
-        break
+    try {
+        if ($User.msExchHideFromAddressLists) {
+            Set-ADUser -Identity $User -Replace @{msExchHideFromAddressLists="TRUE"}
+            #Write-Notes -Message "Hid $User from global address lists in AD"
+            Write-Notes -Message $User.DisplayName "is now hidden from GAL"
+        }
     }
-    else {
-        <# Do nothing, could be that msExchHideFromAddressLists isn't found due to it not being installed/configured. #>
+    catch {
+        #nothing
+    }
+}
+function Start-Dirsync {
+    $ADSyncService = Get-Service -Name "Microsoft Azure AD Sync" -ErrorAction SilentlyContinue
+    if ($ADSyncService.Status -eq "Running") {
+        Start-AdSyncSyncCycle -Policytype Delta
+        Write-Notes -Message "Ran Dirsync Command."
     }
 }
 
-function Disable-User {
+function Disable-ADUser {
     param (
         [parameter(Mandatory, Position=0)]
-        [ValidateScript({Get-ADUser -id $_})]
+        [ValidateScript({Get-ADUser -id $_ -Properties *})]
         [string]$User
         )
         try {
@@ -121,7 +125,7 @@ function Disable-User {
         Remove-DistributionGroups
         Write-Host "Successfully offboarded user."
         Hide-GAL
-        <# DIRSYNC COMMAND: SOON TO COME.. #>
+        Start-Dirsync
         }
         catch {
         Write-Output "Hit the Disable-User try catch block"
