@@ -123,9 +123,9 @@ function Disable-ADUser {
         Set-Password
         Move-User
         Remove-DistributionGroups
-        Write-Host "Successfully offboarded user."
         Hide-GAL
         Start-Dirsync
+        Write-Host "Successfully offboarded user."
         }
         catch {
         Write-Output "Hit the Disable-User try catch block"
