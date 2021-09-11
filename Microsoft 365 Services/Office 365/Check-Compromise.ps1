@@ -11,29 +11,39 @@
     An unusual signature was recently added, such as a fake banking signature or a prescription drug signature.
  #>
 
-
-
-#Connect to required modules.
+#Office 365 Modules.
     Connect-ExchangeOnline
     Connect-IPPSSession
     Connect-AzureAD
 
-#Get  user account's email that is blocked (https://docs.microsoft.com/en-us/microsoft-365/security/office-365-security/removing-user-from-restricted-users-portal-after-spam?view=o365-worldwide)
-Get-BlockedSenderAddress
+#Check if MFA is enabled (https://docs.microsoft.com/en-us/powershell/module/msonline/get-msoluserbystrongauthentication?view=azureadps-1.0)
+    Get-MsolUserByStrongAuthentication
+
+#If CA Policy, further investigate here (https://practical365.com/using-powershell-to-manage-conditional-access-ca-policies/)
+    Get-AzureADMSConditionalAccessPolicy
+#further confirm the excepted locations of MFA here
+    Get-AzureADMSNamedLocationPolicy
+
+#Check if user account is flagged for being compromised.
+Get-AzureADUser -ObjectId $User | select-object IsCompromised
+
+#Get user account's email that is blocked (https://docs.microsoft.com/en-us/microsoft-365/security/office-365-security/removing-user-from-restricted-users-portal-after-spam?view=o365-worldwide)
+    Get-BlockedSenderAddress
 
 #Get Azure Sign in Logs: (https://docs.microsoft.com/en-us/powershell/module/azuread/get-azureadauditsigninlogs?view=azureadps-2.0-preview)
-Get-AzureADAuditSignInLogs
+    Get-AzureADAuditSignInLogs
 
-#Generate a random password (https://www.dinopass.com/api)
-Invoke-RestMethod http://www.dinopass.com/password/simple
+#Generate a temp password that can be easily provided over the phone (https://www.dinopass.com/api)
+    Invoke-RestMethod http://www.dinopass.com/password/simple
 
 #Set user password (https://docs.microsoft.com/en-us/powershell/module/azuread/set-azureaduserpassword?view=azureadps-2.0)
 #will need to get the users object ID.
-
-Set-AzureADUserPassword
+    Set-AzureADUserPassword -ForceChangePasswordNextLogin $true
+    Get-AzureADUser -SearchString $user.UserPrincipalName | Revoke-AzureADUserAllRefreshToken
 
 function Test-User {
     param (
+        [CmdletBinding]
         # Parameter help description
         [Parameter()]
         [ValidateScript({Get-AzureADUser -ObjectId $_})]
