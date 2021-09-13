@@ -15,6 +15,30 @@
     Connect-ExchangeOnline
     Connect-IPPSSession
     Connect-AzureAD
+    Connect-MsolService
+
+#how to connect to multiple services at once
+    $acctName = Read-Host "User Princial Name (Email)"
+    Write-Host "Connecting to Office 365 services."
+    Connect-MsolService
+    #Azure Active Directory
+    Write-Host -ForegroundColor Cyan "Connecting to Azure AD.."
+    Connect-AzureAD -AccountId $acctName
+    #SharePoint Online
+    #Connect-SPOService -Url https://$orgName-admin.sharepoint.com
+    #Exchange Online
+    #Import-Module ExchangeOnlineManagement
+    Write-Host -ForegroundColor Cyan "`nConnecting to Exchange Online..`n"
+    Connect-ExchangeOnline -UserPrincipalName $acctName -ShowProgress $true
+    #Security & Compliance Center
+    Write-Host -ForegroundColor Cyan "`nConnecting to Protection.Office.com`n"
+    Connect-IPPSSession -UserPrincipalName $acctName
+
+    #disconnecting from the services: 
+        #Disconnect-ExchangeOnline -confirm:$false
+        #Disconnect-AzAccount
+        #Disconnect-AzureAD
+     
 
 #Check if MFA is enabled (https://docs.microsoft.com/en-us/powershell/module/msonline/get-msoluserbystrongauthentication?view=azureadps-1.0)
     Get-MsolUserByStrongAuthentication
