@@ -91,7 +91,7 @@ function Remove-DistributionGroups {
 
 function Hide-GAL {
     try {
-        if ($User.msExchHideFromAddressLists) {
+        if ($User.msExchHideFromAddressLists -ne "TRUE") {
             Set-ADUser -Identity $User -Replace @{msExchHideFromAddressLists="TRUE"}
             #Write-Notes -Message "Hid $User from global address lists in AD"
             Write-Notes -Message $User.DisplayName "is now hidden from GAL"
