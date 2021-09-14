@@ -24,8 +24,6 @@
     #Azure Active Directory
     Write-Host -ForegroundColor Cyan "Connecting to Azure AD.."
     Connect-AzureAD -AccountId $acctName
-    #SharePoint Online
-    #Connect-SPOService -Url https://$orgName-admin.sharepoint.com
     #Exchange Online
     #Import-Module ExchangeOnlineManagement
     Write-Host -ForegroundColor Cyan "`nConnecting to Exchange Online..`n"
