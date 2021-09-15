@@ -94,7 +94,7 @@ function Hide-GAL {
         if ($User.msExchHideFromAddressLists -ne "TRUE") {
             Set-ADUser -Identity $User -Replace @{msExchHideFromAddressLists="TRUE"}
             Write-Host "Hit the IF Statement"
-            #Write-Notes -Message "Hid $User from global address lists in AD"
+            Write-Notes -Message "Hid $User from global address lists in AD"
             #Write-Notes -Message $User.DisplayName "is now hidden from GAL"
         }
     }

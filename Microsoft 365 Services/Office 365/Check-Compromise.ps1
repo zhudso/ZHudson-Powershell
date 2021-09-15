@@ -18,19 +18,29 @@
     Connect-MsolService
 
 #how to connect to multiple services at once
-    $acctName = Read-Host "User Princial Name (Email)"
-    Write-Host "Connecting to Office 365 services."
+    Write-Host -ForegroundColor Yellow "
+    ------------------------------------------------------------------------------------------------------------------------------------------------------------
+    | Check-Compromise function will log into (Microsoft Azure AD, Azure-AD, Exchange Online & Security Admin Center)                                           |
+    |   For more information, use Get-Help Check-Compromise                                                                                                     |
+    | To help automatically sign into these services, you'll be asked to enter a global admin email, followed by entering your MFA credentials for Office 365.  |
+    ------------------------------------------------------------------------------------------------------------------------------------------------------------"
+    $globalAdminAcct = Read-Host "Global Admin Email Address"
+    if ($globalAdminAcct) {
+        Write-Host -ForegroundColor Cyan "Signing into Online Microsoft services."
+    }
+    $globalAdminAcct = Read-Host "Global Admin Email:"
+    Write-Host -ForegroundColor Cyan "`nConnecting to Office 365 services..`n"
     Connect-MsolService
     #Azure Active Directory
-    Write-Host -ForegroundColor Cyan "Connecting to Azure AD.."
-    Connect-AzureAD -AccountId $acctName
+    Write-Host -ForegroundColor Cyan "`nConnecting to Azure AD..`n"
+    Connect-AzureAD -AccountId $globalAdminAcct
     #Exchange Online
     #Import-Module ExchangeOnlineManagement
     Write-Host -ForegroundColor Cyan "`nConnecting to Exchange Online..`n"
-    Connect-ExchangeOnline -UserPrincipalName $acctName -ShowProgress $true
+    Connect-ExchangeOnline -UserPrincipalName $globalAdminAcct -ShowProgress $true
     #Security & Compliance Center
-    Write-Host -ForegroundColor Cyan "`nConnecting to Protection.Office.com`n"
-    Connect-IPPSSession -UserPrincipalName $acctName
+    Write-Host -ForegroundColor Cyan "`nConnecting to Protection.Office.com..`n"
+    Connect-IPPSSession -UserPrincipalName $globalAdminAcct -ShowProgress
 
     #disconnecting from the services: 
         #Disconnect-ExchangeOnline -confirm:$false
