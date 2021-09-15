@@ -1,29 +1,3 @@
-
-function Disable-ADUser {
-    [CmdletBinding()]
-    param (
-        [parameter(Mandatory, Position=0)]
-        [ValidateScript({Get-ADUser -id $_ -Properties *})]
-        [string]$User
-        )
-        try {
-            Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
-            Backup-User
-            Set-ADUser $User -Enabled $false
-            Write-Notes -Message "Disabled $User"
-            Set-Password
-            Move-User
-            Remove-DistributionGroups
-            Hide-GAL
-            Start-Dirsync
-            Write-Host "Successfully offboarded user."
-        }
-        catch {
-            Write-Output "Hit the Disable-User try catch block"
-            Write-Warning $Error[0]
-        }
-}
-
 <#
 .SYNOPSIS
         Takes pipeline or written input and appends to a file.
@@ -133,4 +107,28 @@ function Start-Dirsync {
         Start-AdSyncSyncCycle -Policytype Delta
         Write-Notes -Message "Ran Dirsync Command."
     }
+}
+function Disable-ADUser {
+    [CmdletBinding()]
+    param (
+        [parameter(Mandatory, Position=0)]
+        [ValidateScript({Get-ADUser -id $_ -Properties *})]
+        [string]$User
+        )
+        try {
+            Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
+            Backup-User
+            Set-ADUser $User -Enabled $false
+            Write-Notes -Message "Disabled $User"
+            Set-Password
+            Move-User
+            Remove-DistributionGroups
+            Hide-GAL
+            Start-Dirsync
+            Write-Host "Successfully offboarded user."
+        }
+        catch {
+            Write-Output "Hit the Disable-User try catch block"
+            Write-Warning $Error[0]
+        }
 }
