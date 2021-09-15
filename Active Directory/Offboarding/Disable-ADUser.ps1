@@ -89,18 +89,19 @@ function Remove-DistributionGroups {
       }
     }
 
-    function Hide-GAL {
-            try {
-                if ($null -eq $User1.msExchHideFromAddressLists) {
-                    Set-ADUser -Identity $User1 -Replace @{msExchHideFromAddressLists="TRUE"}
-                    #Write-Notes -Message "Hid $User from global address lists in AD"
-                    Write-Notes -Message $User.DisplayName "is now hidden from GAL"
-                }
-            }
-            catch {
-                #nothing
-            }
+function Hide-GAL {
+    try {
+        if ($User.msExchHideFromAddressLists -ne "TRUE") {
+            Set-ADUser -Identity $User -Replace @{msExchHideFromAddressLists="TRUE"}
+            Write-Host "Hit the IF Statement"
+            #Write-Notes -Message "Hid $User from global address lists in AD"
+            #Write-Notes -Message $User.DisplayName "is now hidden from GAL"
         }
+    }
+    catch {
+        #nothing
+    }
+}
 function Start-Dirsync {
     $ADSyncService = Get-Service -Name "Microsoft Azure AD Sync" -ErrorAction SilentlyContinue
     if ($ADSyncService.Status -eq "Running") {
@@ -108,6 +109,7 @@ function Start-Dirsync {
         Write-Notes -Message "Ran Dirsync Command."
     }
 }
+
 function Disable-ADUser {
     [CmdletBinding()]
     param (
