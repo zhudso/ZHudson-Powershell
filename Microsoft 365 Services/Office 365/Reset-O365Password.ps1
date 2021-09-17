@@ -21,7 +21,7 @@ function Reset-O365Password {
 
 #Checking for MsolService
 try {
-    if ($null -ne $MsolServiceSession) {
+    if ($MsolServiceSession) {
         break
     }
     elseif ($null -eq $MsolModule) {
@@ -62,7 +62,7 @@ $ErrorActionPreference = $ErrorActionBackup
 
 #Checking for Azure AD
 try {
-    if ($null -ne $AzureADServiceSession) {
+    if ($AzureADServiceSession) {
         break
     }
     elseif ($null -eq $AzureADModule) {
@@ -87,8 +87,9 @@ try {
         }
     else {
         # Module is already installed, creating new active session.
-        Write-host -ForegroundColor Cyan "Connecting to AzureAD.."
-        Connect-AzureAD
+        $globalAdmin = Read-Host -Prompt "Global Admin Email"
+        Write-host -ForegroundColor Cyan "Connecting to AzureAD as $globalAdmin.."
+        Connect-AzureAD -AccountId $globalAdmin
     }
 }   
     catch {
@@ -127,6 +128,7 @@ if ($OlderThan) {
                     start-sleep -Milliseconds 150
                     $i++
                 }
+            Write-Host -ForegroundColor Cyan "Script completed, instruct users to close their browser and navigate to https://www.office.com or simply sign out and back in to update their passwords."
             }
     } 
     catch {
@@ -144,6 +146,6 @@ if ($OlderThan) {
     } catch {
         $error[0]
     }
+    Write-Host -ForegroundColor Cyan "Script completed, instruct $UserPrincipalName to close their browser and navigate to https://www.office.com or simply sign out and back in to update their password."
 }
-Write-Host -ForegroundColor Cyan "Script completed, instruct users to close their browser and navigate to https://www.office.com or simply sign out and back in to update their passwords."
 }
