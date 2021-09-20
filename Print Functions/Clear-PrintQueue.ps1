@@ -8,7 +8,7 @@ function Clear-PrintQueue {
             $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
         }
             if ((Test-Admin) -eq $false)  {
-                Write-Host -ForegroundColor Yellow "ABORT: Powershell is not running as Administrator. Please close this window and run powershell as Administrator."
+                Write-Warning "Powershell is not running as Administrator. Please close this window and run powershell as Administrator."
             }
     }
     process {

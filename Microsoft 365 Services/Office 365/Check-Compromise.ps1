@@ -27,22 +27,27 @@
     $globalAdminAcct = Read-Host "Global Admin Email Address"
     if ($globalAdminAcct) {
         Write-Host -ForegroundColor Cyan "Signing into Online Microsoft services."
+        try {
+            $globalAdminAcct = Read-Host "Global Admin Email:"
+            #Microsoft Azure Active Directory
+            Write-Host -ForegroundColor Cyan "`nConnecting to Office 365 services..`n"
+                Connect-MsolService
+            #Azure Active Directory
+            Write-Host -ForegroundColor Cyan "`nConnecting to Azure AD..`n"
+                Connect-AzureAD -AccountId $globalAdminAcct
+            #Exchange Online
+            Write-Host -ForegroundColor Cyan "`nConnecting to Exchange Online..`n"
+                Connect-ExchangeOnline -UserPrincipalName $globalAdminAcct
+            #Security & Compliance Center
+            Write-Host -ForegroundColor Cyan "`nConnecting to Protection.Office.com..`n"
+                Connect-IPPSSession -UserPrincipalName $globalAdminAcct
+        }
+        catch {
+            $error[0]
+        }
     }
-    $globalAdminAcct = Read-Host "Global Admin Email:"
-    Write-Host -ForegroundColor Cyan "`nConnecting to Office 365 services..`n"
-    Connect-MsolService
-    #Azure Active Directory
-    Write-Host -ForegroundColor Cyan "`nConnecting to Azure AD..`n"
-    Connect-AzureAD -AccountId $globalAdminAcct
-    #Exchange Online
-    #Import-Module ExchangeOnlineManagement
-    Write-Host -ForegroundColor Cyan "`nConnecting to Exchange Online..`n"
-    Connect-ExchangeOnline -UserPrincipalName $globalAdminAcct -ShowProgress $true
-    #Security & Compliance Center
-    Write-Host -ForegroundColor Cyan "`nConnecting to Protection.Office.com..`n"
-    Connect-IPPSSession -UserPrincipalName $globalAdminAcct -ShowProgress
 
-    #disconnecting from the services: 
+    #disconnecting from the services:
         #Disconnect-ExchangeOnline -confirm:$false
         #Disconnect-AzAccount
         #Disconnect-AzureAD

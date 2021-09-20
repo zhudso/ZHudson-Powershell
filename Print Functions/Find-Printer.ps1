@@ -1,4 +1,3 @@
-
 <#
   .SYNOPSIS
     Finds a certain printer based off of IP, WSD Port or DisplayName.
