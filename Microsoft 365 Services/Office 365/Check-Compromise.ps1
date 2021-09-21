@@ -28,7 +28,6 @@
     if ($globalAdminAcct) {
         Write-Host -ForegroundColor Cyan "Signing into Online Microsoft services."
         try {
-            $globalAdminAcct = Read-Host "Global Admin Email:"
             #Microsoft Azure Active Directory
             Write-Host -ForegroundColor Cyan "`nConnecting to Office 365 services..`n"
                 Connect-MsolService
