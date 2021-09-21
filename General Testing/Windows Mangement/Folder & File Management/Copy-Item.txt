@@ -1,0 +1,16 @@
+Copying an item from a remote computer to your computer.
+
+-------- Pre Reqs --------
+#Requires Powershell 5.1 due to the command: -FromSession
+On remote computer:
+  Enable-PSRemoting -Force
+  winrm set winrm/config/client  '@{TrustedHosts=""}' (optional from my limited experience, but might be required in some cases)
+  Restart-Service WinRM (optional)
+  Test-WsMan "RemoteCOMPUTERName"
+
+-------- Process --------
+$cred = Get-Credential
+$sess = New-PSSession -Credential $cred -ComputerName "computer name"
+Copy-Item "C:\Program Files (x86)\Softros Systems" -Destination $env:userprofile\desktop -Recurse -FromSession $Session
+
+NOTE: -FromSession is important as it's what is able to store the information back to your computer.

@@ -1,0 +1,11 @@
+Enable remote desktop: reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+Firewall: netsh advfirewall firewall set rule group="remote desktop" new enable=Yes
+Add user to remote desktop users: net localgroup "Remote Desktop Users" /add USERNAME
+
+Unable to ping computer but everything else in the VPN.
+	New-NetFirewallRule -DisplayName 'RDP_3389' -Profile 'Domain' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389
+
+
+Disable remote desktop: reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 1 /f
+
+

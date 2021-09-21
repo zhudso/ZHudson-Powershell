@@ -1,0 +1,1 @@
+Get-WmiObject win32_service | where-object {$_.StartName -match "YOUR USERNAME"} | fl Name,StartName,StartMode
