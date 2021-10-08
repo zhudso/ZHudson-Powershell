@@ -16,10 +16,10 @@ function importCSV {
     $OpenFileDialog.ShowDialog() | Out-Null
     $Attachment = $OpenFileDialog.filename
     <# Coverted to global to use in forreach newUser function #>
-    $global:ConvertedAttachment = Import-Csv -Path $Attachment
+    $script:ConvertedAttachment = Import-Csv -Path $Attachment
 }
 function newUser {
-    foreach ($user in $global:ConvertedAttachment) {
+    foreach ($user in $script:ConvertedAttachment) {
         try{
             <# Map user variables #>
             $splat = @{
