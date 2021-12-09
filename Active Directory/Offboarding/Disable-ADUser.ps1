@@ -82,7 +82,7 @@ function Remove-DistributionGroups {
             Remove-ADPrincipalGroupMembership -Identity $User -MemberOf "$ADG" -ErrorAction Stop -Confirm:$false
         }
         Write-Notes -Message "Removed Active Directory groups."
-    } 
+    }
     catch {
         Write-Warning "Error possibly due to the fact that the group was re-named at one point and the name and pre-windows 2000 name are no longer the same. (will require manual removal or correction of the names 'making them the same')"
         Write-Output $Error[0]

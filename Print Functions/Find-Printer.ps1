@@ -56,18 +56,25 @@
 #>
 
 function Find-Printer{
-    [CmdletBinding()]
-    param (
-        [Parameter(Position=0)]
-        [alias("IP","WSD")]
-        $Port,
-        [Parameter(Position=1)]
-        $Name
-    )
-    if ($Port) {
-        Get-Printer | Where-Object {$_.Portname -eq $Port} | Select-Object Name,DriverName,Portname,Shared,ShareName,JobCount | Format-List
-    }
-    if ($Name) {
-        Get-Printer | Where-Object {($_.Name -match $Name) -or ($_.DriverName -match $Name)} | Select-Object Name,DriverName,@{N='Port'; E={$_.Portname}},Shared,ShareName,JobCount | Format-List
-    }
+  [CmdletBinding()]
+  param (
+      [Parameter(Position=0)]
+      [alias("IP","WSD")]
+      $Port,
+      [Parameter(Position=1)]
+      $Name,
+      [switch]$shared
+  )
+  if ($Port) {
+      Get-Printer | Where-Object {$_.Portname -eq $Port} | Select-Object Name,DriverName,Portname,Shared,ShareName,JobCount | Format-List
+  }
+  if ($Name) {
+      Get-Printer | Where-Object {($_.Name -match $Name) -or ($_.DriverName -match $Name)} | Select-Object Name,DriverName,@{N='Port'; E={$_.Portname}},Shared,ShareName,JobCount | Format-List
+  }
+  elseif ($shared) {
+      Get-Printer | Where-Object {$_.Shared -eq $true} | Select-Object Name,DriverName,@{N='Port'; E={$_.Portname}},Shared,ShareName,JobCount | Format-List
+  }
+  else { 
+      Get-Printer | Select-Object Name,DriverName,@{N='Port'; E={$_.Portname}},Shared,ShareName,JobCount | Format-List
+  }
 }

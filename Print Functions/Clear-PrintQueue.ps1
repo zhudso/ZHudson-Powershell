@@ -30,7 +30,7 @@ function Clear-PrintQueue {
             catch {
                 Write-Warning "`nFailed to clear print queue. Please ensure that Printer Spooler service is running & files under directory: C:\Windows\System32\spool\PRINTERS\ is empty."
                 $SpoolerStatus = Get-Service -Name Spooler; $SpoolerStatus
-                $SpoolFiles = Get-ChildItem C:\Windows\System32\spool\PRINTERS; Write-Host  "`nNumber of files under 'C:\Windows\System32\spool\PRINTERS\': " $SpoolFiles.Count
+                $SpoolFiles = Get-ChildItem C:\Windows\System32\spool\PRINTERS; Write-Host  "`nNumber of files under C:\Windows\System32\spool\PRINTERS\:" $SpoolFiles.Count
             }
         }
     }

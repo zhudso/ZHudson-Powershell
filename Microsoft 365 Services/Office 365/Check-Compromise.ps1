@@ -11,13 +11,96 @@
     An unusual signature was recently added, such as a fake banking signature or a prescription drug signature.
  #>
 
-#Office 365 Modules.
+#Required Office 365 Modules.
     Connect-ExchangeOnline
     Connect-IPPSSession
     Connect-AzureAD
     Connect-MsolService
 
-#how to connect to multiple services at once
+function Connect-O365Services {
+
+#Are we already connected to MsolService & Azure AD?
+    $MsolServiceSession = Get-MsolDomain -ErrorAction SilentlyContinue
+#Checking if MsolService & AzureAD Module is installed.
+    $MsolModule = Get-InstalledModule -Name MSOnline -ErrorAction SilentlyContinue
+    $AzureADModule = Get-InstalledModule -Name AzureAD -ErrorAction SilentlyContinue
+}
+#Checking for MsolService
+try {
+    if ($MsolServiceSession) {
+        break
+    }
+    elseif ($null -eq $MsolModule) {
+            # Module is not installed, sliently install
+            try {
+                #Backup Execution Policy
+                $previousEP = Get-ExecutionPolicy
+                #Set Execution Policy to allow install of modules.
+                Set-ExecutionPolicy RemoteSigned
+                #Installing Module
+                Write-Host -ForegroundColor Cyan "Installing Msolservice Module.. "
+                #Silenty Install Module.
+                Install-Module -Name MSOnline -Force
+                #Restore Execution Policy
+                Set-ExecutionPolicy $previousEP
+                Write-host -ForegroundColor Cyan "Module now installed and now connecting to MsolService"
+                Connect-MsolService
+            }
+                catch {
+                    $error[0]
+                }
+        }
+    else {
+        # Module is already installed, creating new active session.
+        Write-host -ForegroundColor Cyan "Connecting to MsolService.."
+        Connect-MsolService
+    }
+}   
+    catch {
+        $error[0]
+}
+
+#Have to do ErrorActionPreference swaps for Azure If Statement command due to Microsoft reasons: https://github.com/Azure/azure-docs-powershell-azuread/issues/155
+$ErrorActionBackup = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+$AzureADServiceSession = Get-AzureADTenantDetail -ErrorAction SilentlyContinue
+$ErrorActionPreference = $ErrorActionBackup
+
+#Checking for Azure AD
+try {
+    if ($AzureADServiceSession) {
+        break
+    }
+    elseif ($null -eq $AzureADModule) {
+            # Module is not installed, sliently install
+            try {
+                #Backup Execution Policy
+                $previousEP = Get-ExecutionPolicy
+                #Set Execution Policy to allow install of modules.
+                Set-ExecutionPolicy RemoteSigned
+                #Installing Module
+                Write-Host -ForegroundColor Cyan "Installing AzureAD Module.. "
+                #Silenty Install Module.
+                Install-Module -Name AzureAD -Force
+                #Restore Execution Policy
+                Set-ExecutionPolicy $previousEP
+                Write-host -ForegroundColor Cyan "Module now installed and now connecting to AzureAD"
+                Connect-AzureAD
+            }
+                catch {
+                    $error[0]
+                }
+        }
+    else {
+        # Module is already installed, creating new active session.
+        Connect-AzureAD -AccountId $globalAdmin
+    }
+}   
+    catch {
+        $error[0]
+}
+
+#Connecting to Online Microsoft Services.
     Write-Host -ForegroundColor Yellow "
     ------------------------------------------------------------------------------------------------------------------------------------------------------------
     | Check-Compromise function will log into (Microsoft Azure AD, Azure-AD, Exchange Online & Security Admin Center)                                           |
@@ -28,7 +111,6 @@
     if ($globalAdminAcct) {
         Write-Host -ForegroundColor Cyan "Signing into Online Microsoft services."
         try {
-            $globalAdminAcct = Read-Host "Global Admin Email:"
             #Microsoft Azure Active Directory
             Write-Host -ForegroundColor Cyan "`nConnecting to Office 365 services..`n"
                 Connect-MsolService
@@ -52,7 +134,7 @@
         #Disconnect-AzAccount
         #Disconnect-AzureAD
      
-
+#Disconnect-ExchangeOnline -confirm:$false
 #Check if MFA is enabled (https://docs.microsoft.com/en-us/powershell/module/msonline/get-msoluserbystrongauthentication?view=azureadps-1.0)
     Get-MsolUserByStrongAuthentication
 
