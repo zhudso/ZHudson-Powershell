@@ -26,7 +26,6 @@
         Portname   : WSD-16ed43e6-f0ec-4b93-bd1b-eee07ad04017
         Shared     : False
         JobCount   : 0
-
   .EXAMPLE
   Find-Printer -IP 192.168.110.243
 
@@ -35,7 +34,6 @@
         Portname   : 192.168.110.243
         Shared     : False
         JobCount   : 0
-
   .EXAMPLE
   Find-Printer -IP WSD-16ed43e6-f0ec-4b93-bd1b-eee07ad04017
 
@@ -44,7 +42,6 @@
         Portname   : WSD-16ed43e6-f0ec-4b93-bd1b-eee07ad04017
         Shared     : False
         JobCount   : 0
-
   .EXAMPLE
   Find-Printer -name brother
 
