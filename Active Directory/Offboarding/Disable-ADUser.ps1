@@ -21,19 +21,24 @@
 function Write-Notes{
     [CmdletBinding()]
     param (
-        [Parameter(ValueFromPipeline=$true)]
-        $pipeValue,
-        [Parameter()]
-        $Message,
-        [Parameter()]
-        $FilePath = "$env:USERPROFILE\Desktop",
-        [Parameter()]
-        $FileName = "$User.DisplayName Offboarding Notes"
+        [Parameter(ValueFromPipeline=$true)] $pipeValue,
+        [Parameter()] $Message,
+        [Parameter()] $FilePath = "$env:USERPROFILE\Desktop\User Offboarding Notes",
+        [Parameter()] $FileName = "$User - Offboarding Notes"
     )
     begin {
         <# Process each value and get them ready as 1 unit for the process block.
         If no begin block, they'll be processed as single items. #>
-    }
+            $fullPath = Join-Path -Path $FilePath -ChildPath $User
+            $testPath = Test-Path -Path $fullPath
+            $FilePath = $fullPath
+                if ($testPath) {
+                    <#Do nothing, continue through script#>
+                }
+                else {
+                    $FilePath = New-Item -ItemType Directory -Path $fullPath
+                }
+        }
     process {
         <# Take each item in the pipeline and write it out to a file. #>
         foreach ($pValue in $pipeValue) {
@@ -53,7 +58,7 @@ function Backup-User {
     Write-Notes -Message "Users Email Address: $UserEmailAddress"
     <# Backup the current groups to the desktop in a .txt file #>
     Get-ADPrincipalGroupMembership -Identity $User | Select-Object -ExpandProperty Name | Write-Notes -FileName "$User ADGroups.txt"
-    Write-Notes -Message "Saved copy of Active Directory Groups $env:userprofile\desktop\$User ADGroups.txt"
+    Write-Notes -Message "Saved copy of Active Directory Groups"
 }
 function Set-Password {
     <# Generates a new 14 character password. 14-character password with the complexity of 5 then add a random number at the end. #>
@@ -93,11 +98,11 @@ function Hide-GAL {
     try {
         if ($User.msExchHideFromAddressLists -ne "TRUE") {
             Set-ADUser -Identity $User -Replace @{msExchHideFromAddressLists="TRUE"}
-            Write-Host "Hit the IF Statement"
-            Write-Notes -Message "Hid $User from global address lists in AD"
-            #Write-Notes -Message $User.DisplayName "is now hidden from GAL"
+                if ($User.msExchHideFromAddressLists -eq "TRUE") {
+                    Write-Notes -Message "Hid $User from global address lists in AD"
+                }
+            }
         }
-    }
     catch {
         #nothing
     }
@@ -113,24 +118,29 @@ function Start-Dirsync {
 function Disable-ADUser {
     [CmdletBinding()]
     param (
-        [parameter(Mandatory, Position=0)]
+        [parameter(Position=0)]
         [ValidateScript({Get-ADUser -id $_ -Properties *})]
-        [string]$User
+        [string]$User,
+        [Parameter()] $Path,
+        [Parameter()] $OutputLocation
         )
-        try {
-            Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
-            Backup-User
-            Set-ADUser $User -Enabled $false
-            Write-Notes -Message "Disabled $User"
-            Set-Password
-            Move-User
-            Remove-DistributionGroups
-            Hide-GAL
-            Start-Dirsync
-            Write-Host "Successfully offboarded user."
-        }
+        $allUsers = Import-Csv -Path $Path| Select-Object -ExpandProperty Username
+        foreach ($user in $allUsers) {
+            try {
+                Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
+                Backup-User
+                Set-ADUser $User -Enabled $false
+                Write-Notes -Message "Disabled $User"
+                Set-Password
+                Move-User
+                Remove-DistributionGroups
+                Hide-GAL
+                #Start-Dirsync
+                Write-Host -ForegroundColor Green "Successfully offboarded $User."
+            }
         catch {
-            Write-Output "Hit the Disable-User try catch block"
+            Write-Output "Hit the Disable-ADUser catch block"
             Write-Warning $Error[0]
         }
+    }
 }
