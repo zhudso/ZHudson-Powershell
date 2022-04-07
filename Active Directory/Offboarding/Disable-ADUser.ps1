@@ -16,38 +16,38 @@
         Created by      : Zach Hudson
         Date Coded      : 03/11/2021
         Modified by     : Zach Hudson
-        Date Modified   : 03/13/2021
+        Date Modified   : 04/07/2022
 #>
 function Write-Notes{
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline=$true)] $pipeValue,
         [Parameter()] $Message,
-        [Parameter()] $FilePath = "$env:USERPROFILE\Desktop\User Offboarding Notes",
-        [Parameter()] $FileName = "$User - Offboarding Notes"
+        [Parameter()] $FolderPath = "$env:USERPROFILE\Desktop\User Offboarding Notes",
+        [Parameter()] $FileName = "$($User.Name) - Notes"
     )
     begin {
         <# Process each value and get them ready as 1 unit for the process block.
         If no begin block, they'll be processed as single items. #>
-            $fullPath = Join-Path -Path $FilePath -ChildPath $User
+            $fullPath = Join-Path -Path $FolderPath -ChildPath $($User.Name)
             $testPath = Test-Path -Path $fullPath
-            $FilePath = $fullPath
+            $FolderPath = $fullPath
                 if ($testPath) {
                     <#Do nothing, continue through script#>
                 }
                 else {
-                    $FilePath = New-Item -ItemType Directory -Path $fullPath
+                    $FolderPath = New-Item -ItemType Directory -Path $fullPath
                 }
         }
     process {
         <# Take each item in the pipeline and write it out to a file. #>
         foreach ($pValue in $pipeValue) {
-            $pValue | Out-File "$FilePath\$FileName.txt" -Append
+            $pValue | Out-File "$FolderPath\$FileName.txt" -Append
         }
     }
     end {
         <# Take the -message parameter and append the message to the file. #>
-        $Message | Out-File "$FilePath\$FileName.txt" -Append
+        $Message | Out-File "$FolderPath\$FileName.txt" -Append
     }
 }
 function Backup-User {
@@ -57,8 +57,8 @@ function Backup-User {
     $UserEmailAddress = Get-ADUser -id $User -Properties * | Select-Object -ExpandProperty UserPrincipalName
     Write-Notes -Message "Users Email Address: $UserEmailAddress"
     <# Backup the current groups to the desktop in a .txt file #>
-    Get-ADPrincipalGroupMembership -Identity $User | Select-Object -ExpandProperty Name | Write-Notes -FileName "$User ADGroups.txt"
-    Write-Notes -Message "Saved copy of Active Directory Groups"
+    Get-ADPrincipalGroupMembership -Identity $User | Select-Object -ExpandProperty Name | Write-Notes -FileName "Group Memberships"
+    Write-Notes -Message "Saved copy of Active Directory Groups to $env:USERPROFILE\Desktop\User Offboarding Notes"
 }
 function Set-Password {
     <# Generates a new 14 character password. 14-character password with the complexity of 5 then add a random number at the end. #>
@@ -95,17 +95,17 @@ function Remove-DistributionGroups {
     }
 
 function Hide-GAL {
-    try {
         if ($User.msExchHideFromAddressLists -ne "TRUE") {
-            Set-ADUser -Identity $User -Replace @{msExchHideFromAddressLists="TRUE"}
+            try {
+            Set-ADUser -Identity $User.samAccountName -Replace @{msExchHideFromAddressLists="TRUE"}
                 if ($User.msExchHideFromAddressLists -eq "TRUE") {
                     Write-Notes -Message "Hid $User from global address lists in AD"
                 }
             }
+                catch {
+                    #nothing
+                }
         }
-    catch {
-        #nothing
-    }
 }
 function Start-Dirsync {
     $ADSyncService = Get-Service -Name "Microsoft Azure AD Sync" -ErrorAction SilentlyContinue
@@ -118,29 +118,35 @@ function Start-Dirsync {
 function Disable-ADUser {
     [CmdletBinding()]
     param (
-        [parameter(Position=0)]
-        [ValidateScript({Get-ADUser -id $_ -Properties *})]
-        [string]$User,
-        [Parameter()] $Path,
-        [Parameter()] $OutputLocation
+        [Parameter()] $FolderPath,
+        [Parameter()] $User
         )
-        $allUsers = Import-Csv -Path $Path| Select-Object -ExpandProperty Username
-        foreach ($user in $allUsers) {
-            try {
-                Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
-                Backup-User
-                Set-ADUser $User -Enabled $false
-                Write-Notes -Message "Disabled $User"
-                Set-Password
-                Move-User
-                Remove-DistributionGroups
-                Hide-GAL
-                #Start-Dirsync
-                Write-Host -ForegroundColor Green "Successfully offboarded $User."
-            }
-        catch {
-            Write-Output "Hit the Disable-ADUser catch block"
-            Write-Warning $Error[0]
-        }
-    }
+        $allUsers = Import-Csv -Path $FolderPath
+        #$FilePath = "C:\Users\aldridgeadmin\Desktop\User Offboarding Notes\newCSVFile.csv"
+        Write-Host "Found "$allUsers.count" users."
+                foreach($account in $allUsers) {
+                        $User = Get-ADUser -filter * -Properties * | Where-Object {$_.Mail -eq $account.TalentPathEmail}
+                            If ($User) {
+                                try {
+                                Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
+                                Backup-User
+                                Set-ADUser $User -Enabled $false; Write-Notes -Message "Disabled $User"
+                                Set-Password
+                                Move-User
+                                Remove-DistributionGroups
+                                $todaysDate = Get-Date
+                                Set-ADUser -identity $User -description "Disabled on $todaysDate"
+                                Hide-GAL
+                                Start-Dirsync
+                                Write-Host -ForegroundColor Green "$($User.Name) success"
+                                }
+                                catch {
+                                    write-host "Error on user $($User.Name)"
+                                    write-error -message $error[0]
+                                }
+                            }
+                            else {
+                                Write-Host -ForegroundColor Red "$($account.TalentPathEmail) not found."
+                            }
+                }
 }
