@@ -1,3 +1,21 @@
+<#
+.SYNOPSIS
+        Clears stuck print jobs on a windows server or workstation.
+    .DESCRIPTION
+        Clear-PrintQueue will start by executing another function (Test-Admin). Clear-PrintQueue cannot perform any actions without running as administrator and (Test-Admin) will notify if you powershell is running as a non-administrator.
+        After clearing (Test-Admin), Clear-PrintQueue will stop the print spooler service & clear any files under: C:\Windows\System32\spool\PRINTERS\. If there is no files under: C:\Windows\System32\spool\PRINTERS\ and the print service has started, then print queue provides a success message.
+        If no success message, then it'll report the Print Spooler status and what files are still under the directory: C:\Windows\System32\spool\PRINTERS\
+    .EXAMPLE
+        On a Print Server or a stand alone workstation that may have host the printer. Run Powershell as Admin and enter: Clear-PrintQueue
+    .NOTES
+        FunctionName    : Clear-PrintQueue
+        Created by      : Zach Hudson
+        Date Coded      : 08/21/2021
+        Modified by     : Zach Hudson
+        Date Modified   : 4/1/2022
+#>
+
+
 function Clear-PrintQueue {
     begin {
         function Test-Admin {
