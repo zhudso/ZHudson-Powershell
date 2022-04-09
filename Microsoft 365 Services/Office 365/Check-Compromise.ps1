@@ -18,7 +18,6 @@
     Connect-MsolService
 
 function Connect-O365Services {
-
 #Are we already connected to MsolService & Azure AD?
     $MsolServiceSession = Get-MsolDomain -ErrorAction SilentlyContinue
 #Checking if MsolService & AzureAD Module is installed.

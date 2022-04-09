@@ -27,8 +27,7 @@ function Write-Notes{
         [Parameter()] $FileName = "$($User.Name) - Notes"
     )
     begin {
-        <# Process each value and get them ready as 1 unit for the process block.
-        If no begin block, they'll be processed as single items. #>
+        <# Create the folder structure for storing notes "actions taken to offboard the user" and a backup of the security groups. #>
             $fullPath = Join-Path -Path $FolderPath -ChildPath $($User.Name)
             $testPath = Test-Path -Path $fullPath
             $FolderPath = $fullPath
