@@ -10,7 +10,9 @@
   -Port (Alias is "IP","WSD")
     Specify a Port address to search
   -Name
-    Specify a Name to search. this will perform a "wildcard" search in both the Printer's displayname and or Driver Displayname. 
+    Specify a Name to search. this will perform a "wildcard" search in both the Printer's displayname and or Driver Displayname.
+  -Shared
+    This 
 
   .PARAMETER OutputPath
   Once a printer is found, it'll output (IP Address, WSD Port, Printer's Displayname or Labeled Driver Name)

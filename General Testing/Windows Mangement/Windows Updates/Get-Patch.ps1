@@ -29,6 +29,7 @@ function Get-Patch {
                 "y" {
                     $updateModule = Get-Module PSWindowsUpdate
                      if ($updateModule) {
+                         #loading bar doesn't work. 
                         foreach ($kb in $allMissingKBs) {
                             for ($kb -le $allMissingKBs; $kbCount++) {
                             Write-Progress -Activity "Installing $kb.." -Status "$kb% Complete" -PercentComplete $kb
