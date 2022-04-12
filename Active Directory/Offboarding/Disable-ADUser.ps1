@@ -120,32 +120,57 @@ function Disable-ADUser {
         [Parameter()] $FolderPath,
         [Parameter()] $User
         )
+    if ($FolderPath) {
         $allUsers = Import-Csv -Path $FolderPath
-        #$FilePath = "C:\Users\aldridgeadmin\Desktop\User Offboarding Notes\newCSVFile.csv"
         Write-Host "Found "$allUsers.count" users."
-                foreach($account in $allUsers) {
-                        $User = Get-ADUser -filter * -Properties * | Where-Object {$_.Mail -eq $account.TalentPathEmail}
-                            If ($User) {
-                                try {
-                                Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
-                                Backup-User
-                                Set-ADUser $User -Enabled $false; Write-Notes -Message "Disabled $User"
-                                Set-Password
-                                Move-User
-                                Remove-DistributionGroups
-                                $todaysDate = Get-Date
-                                Set-ADUser -identity $User -description "Disabled on $todaysDate"
-                                Hide-GAL
-                                Start-Dirsync
-                                Write-Host -ForegroundColor Green "$($User.Name) success"
-                                }
-                                catch {
-                                    write-host "Error on user $($User.Name)"
-                                    write-error -message $error[0]
-                                }
+            foreach($account in $allUsers) {
+                $User = Get-ADUser -filter * -Properties * | Where-Object {$_.Mail -eq $account.TalentPathEmail}
+                    If ($User) {
+                        try {
+                            Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
+                            Backup-User
+                            Set-ADUser $User -Enabled $false; Write-Notes -Message "Disabled $User"
+                            Set-Password
+                            Move-User
+                            Remove-DistributionGroups
+                            #$todaysDate = Get-Date
+                            #Set-ADUser -identity $User -description "Disabled on $todaysDate"
+                            Hide-GAL
+                            Write-Host -ForegroundColor Green "$($User.Name) success"
                             }
-                            else {
-                                Write-Host -ForegroundColor Red "$($account.TalentPathEmail) not found."
+                            catch {
+                                write-host "Error on user $($User.Name)"
+                                write-error -message $error[0]
                             }
+                        }
+                        else {
+                            Write-Host -ForegroundColor Red "$($account.TalentPathEmail) not found."
+                        }
+            }
+    }
+    elseif ($User) {
+        $User = Get-ADUser -filter * -Properties * | Where-Object {$_.samAccountName -eq $User}
+        If ($User) {
+            try {
+                Write-Notes -Message "Logged into server: $env:COMPUTERNAME"
+                Backup-User
+                Set-ADUser $User -Enabled $false; Write-Notes -Message "Disabled $User"
+                Set-Password
+                Move-User
+                Remove-DistributionGroups
+                #$todaysDate = Get-Date
+                #Set-ADUser -identity $User -description "Disabled on $todaysDate"
+                Hide-GAL
+                Start-Dirsync
+                Write-Host -ForegroundColor Green "$($User.Name) success"
                 }
+                catch {
+                    write-host "Error on user $($User.Name)"
+                    write-error -message $error[0]
+                }
+            }
+            else {
+                Write-Host -ForegroundColor Red "$($User.Name) not found."
+            }
+    }
 }
